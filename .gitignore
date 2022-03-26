@@ -1,0 +1,8 @@
+# Ignored folders:
+/builddir
+
+# Ignored files:
+*.pro.user
+*.user
+*.stash
+Makefile
