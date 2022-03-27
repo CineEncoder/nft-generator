@@ -66,8 +66,8 @@ private slots:
 
 private:
 
+    QList<QString> layers;
     QList<QList<NumPaths>> generatedPathsList;
-    QList<QJsonObject> generatedJsonList;
 
     Ui::MainWindow *ui;
     QGraphicsScene *scene;

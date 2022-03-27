@@ -219,7 +219,7 @@
            <height>30</height>
           </size>
          </property>
-         <property name="placeholderText">
+         <property name="text">
           <string>Collection name</string>
          </property>
         </widget>
@@ -238,7 +238,7 @@
            <height>30</height>
           </size>
          </property>
-         <property name="placeholderText">
+         <property name="text">
           <string>ipfs://</string>
          </property>
         </widget>
@@ -340,8 +340,10 @@
            <height>48</height>
           </size>
          </property>
-         <property name="placeholderText">
-          <string>Collection description</string>
+         <property name="markdown">
+          <string>Collection description
+
+</string>
          </property>
         </widget>
        </item>
@@ -1047,7 +1049,7 @@
      <x>0</x>
      <y>0</y>
      <width>1065</width>
-     <height>19</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

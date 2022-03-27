@@ -2,11 +2,11 @@
 #include "ui_mainwindow.h"
 #include "message.h"
 #include "dialog.h"
-#include <QDebug>
 
 
 MainWindow::MainWindow(QWidget *parent):
     QMainWindow(parent),
+    layers(QList<QString>()),
     generatedPathsList(QList<QList<NumPaths>>()),
     ui(new Ui::MainWindow),
     window_activated_flag(false),
@@ -39,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent):
     ui->tableWidget->setSortingEnabled(false);
     //ui->tableWidget->setColumnWidth(0, 20);
     ui->tableWidget->verticalHeader()->setFixedWidth(0);
+    setContentsMargins(4,4,4,4);
 }
 
 MainWindow::~MainWindow()
@@ -98,9 +99,9 @@ void MainWindow::setConnections()
     });
     connect(ui->spinBox_width, &QSpinBox::textChanged, this, [this]() {
         if (lock_ar_flag) {
-            const int _width = ui->spinBox_width->value();
+            const float _width = static_cast<float>(ui->spinBox_width->value());
             ui->spinBox_height->blockSignals(true);
-            ui->spinBox_height->setValue(static_cast<int>(round(aspectRatio*_width)));
+            ui->spinBox_height->setValue(static_cast<int>(round(_width/aspectRatio)));
             ui->spinBox_height->blockSignals(false);
         }
     });
@@ -108,7 +109,7 @@ void MainWindow::setConnections()
         if (lock_ar_flag) {
             const int _height = ui->spinBox_height->value();
             ui->spinBox_width->blockSignals(true);
-            ui->spinBox_width->setValue(static_cast<int>(round(_height/aspectRatio)));
+            ui->spinBox_width->setValue(static_cast<int>(round(aspectRatio*_height)));
             ui->spinBox_width->blockSignals(false);
         }
     });
@@ -152,12 +153,15 @@ void MainWindow::setParameters()
 void MainWindow::fillLayersTable(const QStringList &fullPaths)
 {
     ui->tableWidget->setRowCount(0);
+    layers = QList<QString>();
     foreach (const QString &fullPath, fullPaths) {
         const QString path = QFileInfo(fullPath).baseName();
         const int sep = path.indexOf('#');
         const int rowsCount = ui->tableWidget->rowCount();
+        const QString layerName = path.mid(0, sep);
+        layers << layerName;
         ui->tableWidget->setRowCount(rowsCount + 1);
-        QTableWidgetItem *path_item = new QTableWidgetItem(path.mid(0, sep));
+        QTableWidgetItem *path_item = new QTableWidgetItem(layerName);
         path_item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         ui->tableWidget->setItem(rowsCount, 0, path_item);
     }
@@ -229,24 +233,27 @@ void MainWindow::closeEvent(QCloseEvent *event)
 QString MainWindow::styleCreator(const QString &list)
 {
     QString style = list;
-    QStringList varDetect;
     QStringList splitList;
+    QStringList varList;
     QStringList varNames;
     QStringList varValues;
     splitList << list.split(';');
-    for (int i = 0; i < splitList.size(); i++) {
-        if (splitList[i].indexOf("@") != -1 && splitList[i].indexOf("=") != -1) {
-            varDetect.append(splitList[i]);
+
+    foreach (const QString &row, splitList) {
+        const int first_symbol = row.indexOf('@');
+        if (first_symbol != -1 && row.indexOf('=') != -1) {
+            varList.append(row.mid(first_symbol));
         }
     }
-    for (int i = 0; i < varDetect.size(); i++) {
-        varNames.append(varDetect[i].split('=')[0].remove(" ").remove("\n"));
-        varValues.append(varDetect[i].split('=')[1].remove(" ").remove("\n"));
-        style = style.remove(varDetect[i] + QString(";"));
+    foreach (const QString &var, varList) {
+        varNames.append(var.split('=')[0].remove(' ').remove('\n'));
+        varValues.append(var.split('=')[1].remove(' ').remove('\n'));
+        style = style.remove(var + QString(";"));
     }
-    for (int i = 0; i < varNames.size(); i++) {
+    for (int i = 0; i < varNames.size() && i < varValues.size(); i++) {
         style = style.replace(varNames[i], varValues[i]);
     }
+    //std::cout << style.toStdString() << std::endl;
     return style;
 }
 
@@ -477,7 +484,8 @@ void MainWindow::onSaveJsonClicked()
         QApplication::processEvents();
 
         int index = ui->spinBox_startFrom->value();
-        foreach (const QList<NumPaths> &numFiles, generatedPathsList) {
+        QJsonArray agregateArray;
+        for (int serial = 0; serial < generatedPathsList.size(); serial++) {
             const qint64 _date = QDateTime::currentMSecsSinceEpoch();
 
             quint32 value = QRandomGenerator::global()->generate();
@@ -489,29 +497,34 @@ void MainWindow::onSaveJsonClicked()
                 randomHex.append(QString::number(n, 16));
             }
 
-
             QJsonObject obj;
-            obj["name"] = ui->lineEdit_name->text();
+            obj["name"] = ui->lineEdit_name->text() + QString(" #%1").arg(QString::number(serial + index));;
             obj["description"] = ui->textEdit_description->toPlainText().replace("\n", " ");
-            obj["image"] = ui->lineEdit_uri->text();
+            obj["image"] = ui->lineEdit_uri->text() + QString("/%1.json").arg(QString::number(serial + index));
             obj["dna"] = randomHex;
-            obj["edition"] = index;
+            obj["edition"] = serial + index;
             obj["date"] = _date;
 
             QJsonArray array;
-            QList<QString> list = {"ddd", "ggg"};
-            foreach (const QString level, list) {
+            int layerInd = 0;
+            if (layers.size() != generatedPathsList.at(serial).size()) {
+                qWarning("Unexpected error!");
+                break;
+            }
+            foreach (const NumPaths &numFile, generatedPathsList.at(serial)) {
+                const QString file = QFileInfo(numFile.fullPath).baseName();
+                const int sep = file.indexOf('#');
                 QJsonObject levelObject;
-                levelObject["trait_type"] = "rrr";
-                levelObject["value"] = "rrr";
+                levelObject["trait_type"] = layers.at(layerInd);
+                levelObject["value"] = file.mid(0, sep);
                 array.append(levelObject);
+                layerInd++;
             }
             obj["attributes"] = array;
-
             QJsonDocument doc(obj);
+            agregateArray.append(obj);
 
-
-            const QString fileName = json_folder + QString("/%1.json").arg(QString::number(index));
+            const QString fileName = json_folder + QString("/%1.json").arg(QString::number(serial + index));
             ptr_progress->setText(fileName);
             ptr_progress->setPercent(50);
             QApplication::processEvents();
@@ -533,7 +546,30 @@ void MainWindow::onSaveJsonClicked()
             Sleep(50);
     #endif
             ptr_progress->setPercent(0);
-            index++;
+        }
+
+        const QString agregateFileName = json_folder + QString("/_metadata.json");
+        ptr_progress->setText(agregateFileName);
+        ptr_progress->setPercent(50);
+        QApplication::processEvents();
+        if (!save_aborted) {
+            QJsonDocument doc(agregateArray);
+            QFile jsonFile(agregateFileName);
+            if (jsonFile.open(QIODevice::WriteOnly)) {
+                jsonFile.write(doc.toJson());
+                jsonFile.close();
+
+                ptr_progress->setPercent(100);
+                QApplication::processEvents();
+        #if defined (Q_OS_UNIX)
+                usleep(50000);
+        #elif defined (Q_OS_WIN64)
+                Sleep(50);
+        #endif
+                ptr_progress->setPercent(0);
+            } else {
+                qWarning("Couldn't open save file.");
+            }
         }
         ptr_progress->hide();
         ptr_progress->disconnect();
