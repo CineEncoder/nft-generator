@@ -15,6 +15,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QRandomGenerator>
+#include <QDataStream>
 #include <iostream>
 #include <math.h>
 #include <ctime>
@@ -22,14 +23,11 @@
 #include "generator.h"
 #include "constants.h"
 
-
 #if defined (Q_OS_UNIX)
     #include <unistd.h>
 #elif defined(Q_OS_WIN64)
     #include <windows.h>
 #endif
-
-#include <QDebug>
 
 using std::cout;
 
@@ -47,8 +45,10 @@ class MainWindow : public QMainWindow
 public:
 
     MainWindow(QWidget *parent = nullptr);
-
     ~MainWindow();
+
+    friend QDataStream& (operator<<)(QDataStream &out, const NumPaths &path);
+    friend QDataStream& (operator>>)(QDataStream &in, NumPaths &path);
 
 private slots:
 
@@ -58,10 +58,12 @@ private slots:
     void onAddFolderClicked();
     void onSaveCollectionClicked();
     void onSaveJsonClicked();
+    void onSaveProjectAsClicked();
+    void onLoadProjectClicked();
     void setOutputFolder();
     void onLockARClicked();
 
-    QString openFolder(const QString &title);
+    QString openFileDialog(const QString &title, int dialogType);
     QString styleCreator(const QString &list);
 
 private:
@@ -78,12 +80,14 @@ private:
          lock_ar_flag,
          folder_added_flag;
 
-    int  current_image;
+    int  current_image,
+         maxPossibleCount;
 
     float aspectRatio;
 
     QString input_folder,
-            output_folder;
+            output_folder,
+            project_folder;
 
     void setConnections();
     void setParameters();
@@ -91,7 +95,12 @@ private:
     void fillValuesTable(const QList<NumPaths> &numFiles);
     void showScene(const QList<NumPaths> &numFiles);
     void showMessage(const QString &message);
-    void renewFolder(const QString &folder);
+    void renewFolder(const QString &folder,
+                     QList<QList<NumPaths>> &totalPathsList,
+                     QStringList &paths,
+                     bool &correctSequenceFlag);
+    void renewData(const QString &folder, const QStringList &paths);
+    void regenerateCollection(const QString &folder);
     void scrollImages(const int direction);
 };
 

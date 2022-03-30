@@ -20,5 +20,8 @@ enum Direction {
     PREVIOUS, NEXT
 };
 
+enum FileDialogType {
+    LOADFILE, SAVEFILE, OPENFOLDER
+};
 
 #endif // CONSTANTS_H

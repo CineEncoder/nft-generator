@@ -2,7 +2,7 @@
 #include "ui_mainwindow.h"
 #include "message.h"
 #include "dialog.h"
-
+//#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent):
     QMainWindow(parent),
@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent):
     lock_ar_flag(true),
     folder_added_flag(false),
     current_image(0),
+    maxPossibleCount(1),
     aspectRatio(1.f)
 {
     ui->setupUi(this);
@@ -47,6 +48,20 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+QDataStream& operator<<(QDataStream &out, const NumPaths &path)
+{
+    out << path.num;
+    out << path.fullPath;
+    return out;
+}
+
+QDataStream& operator>>(QDataStream &in, NumPaths &path)
+{
+    in >> path.num;
+    in >> path.fullPath;
+    return in;
+}
+
 void MainWindow::showEvent(QShowEvent *event)
 {
     QMainWindow::showEvent(event);
@@ -63,17 +78,34 @@ void MainWindow::setConnections()
     _ptrTimerDelayingCall->setSingleShot(true);
     _ptrTimerDelayingCall->setInterval(800);
     connect(_ptrTimerDelayingCall, &QTimer::timeout, this, [this]() {
-        renewFolder(input_folder);
+        regenerateCollection(input_folder);
     });
-
+    //================= File menu ================
     connect(ui->actionAddFolder, &QAction::triggered, this, &MainWindow::onAddFolderClicked);
     connect(ui->actionSetOutputFolder, &QAction::triggered, this, &MainWindow::setOutputFolder);
+    connect(ui->actionSaveProjectAs, &QAction::triggered, this, &MainWindow::onSaveProjectAsClicked);
+    connect(ui->actionLoadProject, &QAction::triggered, this, &MainWindow::onLoadProjectClicked);
+    connect(ui->actionExportImages, &QAction::triggered, this, &MainWindow::onSaveCollectionClicked);
+    connect(ui->actionExportJson, &QAction::triggered, this, &MainWindow::onSaveJsonClicked);
+    //================== Edit menu ===============
+    connect(ui->actionPrevious, &QAction::triggered, this, [this]() {
+        scrollImages(Direction::PREVIOUS);
+    });
+    connect(ui->actionNext, &QAction::triggered, this, [this]() {
+        scrollImages(Direction::NEXT);
+    });
+    //================== View menu ===============
+    QList<QDockWidget*> dockList = findChildren<QDockWidget*>();
+    foreach (QDockWidget *dock, dockList) {
+        ui->menuView->addAction(dock->toggleViewAction());
+    }
+    //============================================
 
     ui->toolBar->addAction(QIcon(":/resources/icons/16x16/cil-library-add.png"),
                            tr("Add folder"), this, &MainWindow::onAddFolderClicked);
     ui->toolBar->addAction(QIcon(":/resources/icons/16x16/cil-loop-circular.png"),
                            tr("Renew"), this, [this]() {
-        renewFolder(input_folder);
+        regenerateCollection(input_folder);
     });
     ui->toolBar->addSeparator();   
     ui->toolBar->addAction(QIcon(":/resources/icons/16x16/cil-chevron-left.png"),
@@ -93,9 +125,15 @@ void MainWindow::setConnections()
     connect(ui->buttonInputFolder, &QPushButton::clicked, this, &MainWindow::onAddFolderClicked);
     connect(ui->buttonOutputFolder, &QPushButton::clicked, this, &MainWindow::setOutputFolder);
     connect(ui->buttonLockAR, &QPushButton::clicked, this, &MainWindow::onLockARClicked);
-    connect(ui->spinBox_count, &QSpinBox::textChanged, this, [_ptrTimerDelayingCall]() {
+    connect(ui->spinBox_count, &QSpinBox::textChanged, this, [this, _ptrTimerDelayingCall]() {
+        const int value = ui->spinBox_count->value();
+        ui->spinBox_endInt->setMaximum(value);
+        ui->spinBox_endInt->setValue(value);
         _ptrTimerDelayingCall->stop();
         _ptrTimerDelayingCall->start();
+    });
+    connect(ui->spinBox_endInt, &QSpinBox::textChanged, this, [this]() {
+        ui->spinBox_startInt->setMaximum(ui->spinBox_endInt->value());
     });
     connect(ui->spinBox_width, &QSpinBox::textChanged, this, [this]() {
         if (lock_ar_flag) {
@@ -118,6 +156,18 @@ void MainWindow::setConnections()
         ptr_progress->setText(QString::number(value));
         ptr_progress->setPercent(static_cast<int>(percent));
     });
+    connect(ui->buttonAddMetadata, &QPushButton::clicked, this, [this]() {
+        const int rowsCount = ui->tableWidget_advanced->rowCount();
+        ui->tableWidget_advanced->setRowCount(rowsCount + 1);
+        QTableWidgetItem *key_item = new QTableWidgetItem(QString("key %1").arg(QString::number(rowsCount + 1)));
+        QTableWidgetItem *value_item = new QTableWidgetItem(QString("value %1").arg(QString::number(rowsCount + 1)));
+        ui->tableWidget_advanced->setItem(rowsCount, 0, key_item);
+        ui->tableWidget_advanced->setItem(rowsCount, 1, value_item);
+    });
+    connect(ui->buttonRemoveMetadata, &QPushButton::clicked, this, [this]() {
+        const int row = ui->tableWidget_advanced->currentRow();
+        if (row != -1) ui->tableWidget_advanced->removeRow(row);
+    });
 }
 
 void MainWindow::setParameters()
@@ -138,16 +188,18 @@ void MainWindow::setParameters()
     lock_ar_flag = settings.value("Main/lock_ar", true).toBool();
     input_folder = settings.value("Main/input_folder").toString();
     output_folder = settings.value("Main/output_folder", QDir::homePath()).toString();
+    project_folder = settings.value("Main/project_folder", QDir::homePath()).toString();
     settings.endGroup();
 
+    ui->lineEdit_inputFolder->setText(input_folder);
     ui->lineEdit_outputFolder->setText(output_folder);
     ui->buttonLockAR->setProperty("lock", lock_ar_flag);
     ui->buttonLockAR->style()->polish(ui->buttonLockAR);
-    if (!input_folder.isEmpty()) {
+    /*if (!input_folder.isEmpty()) {
         QTimer::singleShot(700, this, [this]() {
-            renewFolder(input_folder);
+            regenerateCollection(input_folder);
         });
-    }
+    }*/
 }
 
 void MainWindow::fillLayersTable(const QStringList &fullPaths)
@@ -225,6 +277,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     settings.setValue("Main/lock_ar", lock_ar_flag);
     settings.setValue("Main/input_folder", input_folder);
     settings.setValue("Main/output_folder", output_folder);
+    settings.setValue("Main/project_folder", project_folder);
     settings.endGroup();
 
     event->accept();
@@ -295,70 +348,55 @@ bool MainWindow::eventFilter(QObject* object, QEvent* event)
 
 void MainWindow::onAddFolderClicked()
 {
-    const QString folder = openFolder(tr("Add folder"));
+    const QString folder = openFileDialog(tr("Add folder"), FileDialogType::OPENFOLDER);
     if (!folder.isEmpty()) {
-        folder_added_flag = false;
-        renewFolder(folder);
-    }
-}
-
-void MainWindow::onSaveCollectionClicked()
-{
-    if (!generatedPathsList.isEmpty() && QDir(output_folder).exists()) {
-        const QString images_folder = output_folder + QString("/images");
-        if (QDir(images_folder).exists()) {
-            QDir(images_folder).removeRecursively();
-        }
-        if (!QDir(images_folder).exists()) {
-            QDir().mkdir(images_folder);
-        }
-        bool save_aborted = false;
-        auto abortSave = [&save_aborted]() {
-            save_aborted = true;
-        };
-        ptr_progress->show();
-        ptr_progress->setType(this, ProgressMode::SAVE);
-        connect(ptr_progress, &ProgressMessage::saveAborted, this, abortSave);
-        ptr_progress->setPercent(0);
-        QApplication::processEvents();
-
-        int index = ui->spinBox_startFrom->value();
-        foreach (const QList<NumPaths> &numFiles, generatedPathsList) {
-            showScene(numFiles);
-            scene->clearSelection();
-            scene->setSceneRect(scene->itemsBoundingRect());
-            QImage image(scene->sceneRect().size().toSize(), QImage::Format_ARGB32);
-            image.fill(Qt::transparent);
-            QPainter painter(&image);
-            scene->render(&painter);
-            const QString fileName = images_folder + QString("/%1.png").arg(QString::number(index));
-            ptr_progress->setText(fileName);
-            ptr_progress->setPercent(50);
-            QApplication::processEvents();
-            if (save_aborted) break;
-            image.save(fileName, "PNG", 20);
-            ptr_progress->setPercent(100);
-            QApplication::processEvents();
-    #if defined (Q_OS_UNIX)
-            usleep(50000);
-    #elif defined (Q_OS_WIN64)
-            Sleep(50);
-    #endif
-            ptr_progress->setPercent(0);
-            index++;
-        }
-        ptr_progress->hide();
-        ptr_progress->disconnect();
+        regenerateCollection(folder);
     }
 }
 
 void MainWindow::setOutputFolder()
 {
-    const QString folder = openFolder(tr("Output folder"));
+    const QString folder = openFileDialog(tr("Output folder"), FileDialogType::OPENFOLDER);
     if (!folder.isEmpty()) {
         output_folder = folder;
         ui->lineEdit_outputFolder->setText(folder);
     }
+}
+
+QString MainWindow::openFileDialog(const QString &title, int dialogType)
+{
+    QFileDialog fileDialog(nullptr);
+    fileDialog.setWindowTitle(title);
+    fileDialog.setMinimumWidth(600);
+    fileDialog.setWindowFlags(Qt::Dialog | Qt::SubWindow);
+#if defined (Q_OS_UNIX)
+    fileDialog.setOptions(QFileDialog::DontUseNativeDialog);
+#endif
+    fileDialog.setOptions(QFileDialog::DontResolveSymlinks);
+    if (dialogType == FileDialogType::LOADFILE) {
+        fileDialog.setDirectory(project_folder);
+        fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+        fileDialog.setFileMode(QFileDialog::ExistingFile);
+        fileDialog.setNameFilter(tr("Project files: *.nft (*.nft)"));
+    } else
+    if (dialogType == FileDialogType::SAVEFILE) {
+        fileDialog.setDirectory(project_folder);
+        fileDialog.setAcceptMode(QFileDialog::AcceptSave);
+        fileDialog.selectFile(QString("untitled.nft"));
+        fileDialog.setNameFilter("Project file (*.nft)");
+    } else
+    if (dialogType == FileDialogType::OPENFOLDER) {
+        fileDialog.setDirectory(QDir::homePath());
+        fileDialog.setFileMode(QFileDialog::DirectoryOnly);
+        fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
+    }
+    if (fileDialog.exec() == QFileDialog::Accepted) {
+        if (dialogType == FileDialogType::LOADFILE || dialogType == FileDialogType::SAVEFILE) {
+            project_folder = QFileInfo(fileDialog.selectedFiles().at(0)).absolutePath();
+        }
+        return fileDialog.selectedFiles().at(0);
+    }
+    return QString("");
 }
 
 void MainWindow::onLockARClicked()
@@ -366,24 +404,6 @@ void MainWindow::onLockARClicked()
     lock_ar_flag = (lock_ar_flag) ? false : true;
     ui->buttonLockAR->setProperty("lock", lock_ar_flag);
     ui->buttonLockAR->style()->polish(ui->buttonLockAR);
-}
-
-QString MainWindow::openFolder(const QString &title)
-{
-    QFileDialog selectFolderWindow(nullptr);
-    selectFolderWindow.setWindowTitle(title);
-    selectFolderWindow.setMinimumWidth(600);
-    selectFolderWindow.setWindowFlags(Qt::Dialog | Qt::SubWindow);
-#if defined (Q_OS_UNIX)
-    selectFolderWindow.setOption(QFileDialog::DontUseNativeDialog, true);
-#endif
-    selectFolderWindow.setFileMode(QFileDialog::DirectoryOnly);
-    selectFolderWindow.setAcceptMode(QFileDialog::AcceptOpen);
-    selectFolderWindow.setDirectory(QDir::homePath());
-    if (selectFolderWindow.exec() == QFileDialog::Accepted) {
-        return selectFolderWindow.selectedFiles().at(0);
-    }
-    return QString("");
 }
 
 void MainWindow::showMessage(const QString &message)
@@ -394,17 +414,22 @@ void MainWindow::showMessage(const QString &message)
     msg.exec();
 }
 
-void MainWindow::renewFolder(const QString &folder)
+void MainWindow::renewFolder(const QString &folder,
+                             QList<QList<NumPaths>> &totalPathsList,
+                             QStringList &paths,
+                             bool &correctSequenceFlag)
 {
     QList<NumPaths> numPaths = generator->getFilesOrFolders(folder, TypeOfObject::FOLDERS);
+    totalPathsList = QList<QList<NumPaths>>();
+    paths = QStringList();
     if (numPaths.isEmpty()) {
         showMessage(tr("Folder is empty or set the sequence of layers first!"));
+        correctSequenceFlag = false;
         return;
     }
-    int maxPossibleCount = 1;
-    QStringList paths;
-    bool correctSequenceFlag = true;
-    QList<QList<NumPaths>> totalPathsList;
+    maxPossibleCount = 1;
+    folder_added_flag = false;
+    correctSequenceFlag = true;
     foreach (const NumPaths &numPath, numPaths) {
         paths << numPath.fullPath;
         QList<NumPaths> numFilesInPath = generator->getFilesOrFolders(numPath.fullPath, TypeOfObject::FILES);
@@ -418,30 +443,42 @@ void MainWindow::renewFolder(const QString &folder)
             maxPossibleCount *= numFilesInPath.size();
         }
     }
+}
+
+void MainWindow::renewData(const QString &folder, const QStringList &paths)
+{
+    if (!generatedPathsList.isEmpty()) {
+        ui->lineEdit_inputFolder->setText(folder);
+        fillLayersTable(paths);
+        fillValuesTable(generatedPathsList.at(0));
+        ui->lineEdit_currentImage->setText(QString::number(current_image + 1));
+        showScene(generatedPathsList.at(0));
+    }
+    QString count = QString::number(maxPossibleCount);
+    int w_size = count.size();
+    if (w_size > 3) count.insert(count.size() - 3, " ");
+    if (w_size > 6) count.insert(count.size() - 7, " ");
+    statusBar()->showMessage(tr("Maximum possible combinations count: %1").arg(count));
+}
+
+void MainWindow::regenerateCollection(const QString &folder)
+{
+    bool correctSequenceFlag = true;
+    QList<QList<NumPaths>> totalPathsList;
+    QStringList paths;
+    renewFolder(folder, totalPathsList, paths, correctSequenceFlag);
     if (correctSequenceFlag) {
         input_folder = folder;
         current_image = 0;
-
+        ui->spinBox_count->blockSignals(true);
+        ui->spinBox_count->setMaximum((maxPossibleCount > 50000) ? 50000:maxPossibleCount);
+        ui->spinBox_count->blockSignals(false);
         ptr_progress->show();
         ptr_progress->setType(this, ProgressMode::GENERATE);
         QApplication::processEvents();
-
         int generatedCount = ui->spinBox_count->value();
         generatedPathsList = generator->generateCollection(generatedCount, totalPathsList);
-
-        if (!generatedPathsList.isEmpty()) {  
-            ui->lineEdit_inputFolder->setText(folder);
-            fillLayersTable(paths);
-            fillValuesTable(generatedPathsList.at(0));
-            ui->lineEdit_currentImage->setText(QString::number(current_image + 1));
-            showScene(generatedPathsList.at(0));
-        }
-
-        QString count = QString::number(maxPossibleCount);
-        int w_size = count.size();
-        if (w_size > 3) count.insert(count.size() - 3, " ");
-        if (w_size > 6) count.insert(count.size() - 7, " ");
-        statusBar()->showMessage(tr("Maximum possible combinations count: %1").arg(count));
+        renewData(folder, paths);
         ptr_progress->hide();
     }
 }
@@ -463,9 +500,72 @@ void MainWindow::scrollImages(const int direction)
     }
 }
 
+void MainWindow::onSaveCollectionClicked()
+{
+    if (!generatedPathsList.isEmpty() && QDir(output_folder).exists()) {
+        const int startInt = ui->spinBox_startInt->value() - 1;
+        const int endInt = ui->spinBox_endInt->value();
+        if (endInt > generatedPathsList.size()) {
+            showMessage(tr("Bad interval to save collection!"));
+            return;
+        }
+        const QString images_folder = output_folder + QString("/images");
+        if (QDir(images_folder).exists()) {
+            QDir(images_folder).removeRecursively();
+        }
+        if (!QDir(images_folder).exists()) {
+            QDir().mkdir(images_folder);
+        }
+        bool save_aborted = false;
+        auto abortSave = [&save_aborted]() {
+            save_aborted = true;
+        };
+        ptr_progress->show();
+        ptr_progress->setType(this, ProgressMode::SAVE);
+        connect(ptr_progress, &ProgressMessage::saveAborted, this, abortSave);
+        ptr_progress->setPercent(0);
+        QApplication::processEvents();
+
+        int serial = 0;
+        const int index = ui->spinBox_startFrom->value();
+        const int collectSize = endInt - startInt;
+        for (int i = startInt; i < endInt; i++) {
+            showScene(generatedPathsList.at(i));
+            scene->clearSelection();
+            scene->setSceneRect(scene->itemsBoundingRect());
+            QImage image(scene->sceneRect().size().toSize(), QImage::Format_ARGB32);
+            image.fill(Qt::transparent);
+            QPainter painter(&image);
+            scene->render(&painter);
+            const QString fileName = images_folder + QString("/%1.png").arg(QString::number(serial + index));
+            ptr_progress->setText(fileName);
+            const float percent = 100.f*(static_cast<float>(serial + 1)/collectSize);
+            QApplication::processEvents();
+            if (save_aborted) break;
+            image.save(fileName, "PNG", 20);
+            ptr_progress->setPercent(static_cast<int>(percent));
+            QApplication::processEvents();
+    #if defined (Q_OS_UNIX)
+            usleep(50000);
+    #elif defined (Q_OS_WIN64)
+            Sleep(50);
+    #endif
+            serial++;
+        }
+        ptr_progress->hide();
+        ptr_progress->disconnect();
+    }
+}
+
 void MainWindow::onSaveJsonClicked()
 {
     if (!generatedPathsList.isEmpty() && QDir(output_folder).exists()) {
+        const int startInt = ui->spinBox_startInt->value() - 1;
+        const int endInt = ui->spinBox_endInt->value();
+        if (endInt > generatedPathsList.size()) {
+            showMessage(tr("Bad interval to save Json!"));
+            return;
+        }
         const QString json_folder = output_folder + QString("/json");
         if (QDir(json_folder).exists()) {
             QDir(json_folder).removeRecursively();
@@ -483,9 +583,12 @@ void MainWindow::onSaveJsonClicked()
         ptr_progress->setPercent(0);
         QApplication::processEvents();
 
-        int index = ui->spinBox_startFrom->value();
+        int serial = 0;
+        const int index = ui->spinBox_startFrom->value();
+        const int collectSize = endInt - startInt;
+        const int rowCount = ui->tableWidget_advanced->rowCount();
         QJsonArray agregateArray;
-        for (int serial = 0; serial < generatedPathsList.size(); serial++) {
+        for (int i = startInt; i < endInt; i++) {
             const qint64 _date = QDateTime::currentMSecsSinceEpoch();
 
             quint32 value = QRandomGenerator::global()->generate();
@@ -496,22 +599,28 @@ void MainWindow::onSaveJsonClicked()
                 const int n = qrand() % 16;
                 randomHex.append(QString::number(n, 16));
             }
-
+            //============== Metadata ===============
             QJsonObject obj;
-            obj["name"] = ui->lineEdit_name->text() + QString(" #%1").arg(QString::number(serial + index));;
+            obj["name"] = ui->lineEdit_name->text() + QString(" #%1").arg(QString::number(serial + index));
             obj["description"] = ui->textEdit_description->toPlainText().replace("\n", " ");
             obj["image"] = ui->lineEdit_uri->text() + QString("/%1.json").arg(QString::number(serial + index));
             obj["dna"] = randomHex;
             obj["edition"] = serial + index;
             obj["date"] = _date;
-
+            //========= Advanced metadata ===========
+            for (int row = 0; row < rowCount; row++) {
+                const QString _key = ui->tableWidget_advanced->item(row, 0)->text();
+                const QString _value = ui->tableWidget_advanced->item(row, 1)->text();
+                obj[_key] = _value;
+            }
+            //============= Arrtibutes ==============
             QJsonArray array;
             int layerInd = 0;
-            if (layers.size() != generatedPathsList.at(serial).size()) {
+            if (layers.size() != generatedPathsList.at(i).size()) {
                 qWarning("Unexpected error!");
                 break;
             }
-            foreach (const NumPaths &numFile, generatedPathsList.at(serial)) {
+            foreach (const NumPaths &numFile, generatedPathsList.at(i)) {
                 const QString file = QFileInfo(numFile.fullPath).baseName();
                 const int sep = file.indexOf('#');
                 QJsonObject levelObject;
@@ -521,12 +630,13 @@ void MainWindow::onSaveJsonClicked()
                 layerInd++;
             }
             obj["attributes"] = array;
+            //========================================
             QJsonDocument doc(obj);
             agregateArray.append(obj);
 
             const QString fileName = json_folder + QString("/%1.json").arg(QString::number(serial + index));
             ptr_progress->setText(fileName);
-            ptr_progress->setPercent(50);
+            const float percent = 100.f*(static_cast<float>(serial + 1)/collectSize);
             QApplication::processEvents();
             if (save_aborted) break;
 
@@ -538,18 +648,26 @@ void MainWindow::onSaveJsonClicked()
             jsonFile.write(doc.toJson());
             jsonFile.close();
 
-            ptr_progress->setPercent(100);
+            ptr_progress->setPercent(static_cast<int>(percent));
             QApplication::processEvents();
     #if defined (Q_OS_UNIX)
             usleep(50000);
     #elif defined (Q_OS_WIN64)
             Sleep(50);
     #endif
-            ptr_progress->setPercent(0);
+            serial++;
         }
 
+        QApplication::processEvents();
         const QString agregateFileName = json_folder + QString("/_metadata.json");
         ptr_progress->setText(agregateFileName);
+        ptr_progress->setPercent(0);
+#if defined (Q_OS_UNIX)
+        usleep(50000);
+#elif defined (Q_OS_WIN64)
+        Sleep(50);
+#endif
+        QApplication::processEvents();
         ptr_progress->setPercent(50);
         QApplication::processEvents();
         if (!save_aborted) {
@@ -561,12 +679,7 @@ void MainWindow::onSaveJsonClicked()
 
                 ptr_progress->setPercent(100);
                 QApplication::processEvents();
-        #if defined (Q_OS_UNIX)
-                usleep(50000);
-        #elif defined (Q_OS_WIN64)
-                Sleep(50);
-        #endif
-                ptr_progress->setPercent(0);
+
             } else {
                 qWarning("Couldn't open save file.");
             }
@@ -575,3 +688,118 @@ void MainWindow::onSaveJsonClicked()
         ptr_progress->disconnect();
     }
 }
+
+void MainWindow::onSaveProjectAsClicked()
+{
+    if (generatedPathsList.size() > 0) {
+        const int rowCount = ui->tableWidget_advanced->rowCount();
+        QMap<QString, QString> tableMap;
+        for (int row = 0; row < rowCount; row++) {
+            const QString key = ui->tableWidget_advanced->item(row, 0)->text();
+            const QString value = ui->tableWidget_advanced->item(row, 1)->text();
+            tableMap[key] = value;
+        }
+        QString outFilePath = openFileDialog(tr("Save Project"), FileDialogType::SAVEFILE);
+        if (outFilePath.isEmpty()) return;
+        QFile savedFile(outFilePath);
+        if (savedFile.open(QIODevice::WriteOnly)) {
+            QDataStream out(&savedFile);
+            out.setVersion(QDataStream::Qt_4_0);
+            out << (quint32)0xCEFDEF;
+            out << tableMap;
+            out << ui->lineEdit_name->text();
+            out << ui->textEdit_description->toPlainText();
+            out << ui->lineEdit_uri->text();
+            out << ui->spinBox_count->value();
+            out << ui->spinBox_startFrom->value();
+            out << ui->spinBox_startInt->value();
+            out << ui->spinBox_endInt->value();
+            out << input_folder;
+            out << generatedPathsList;
+            savedFile.close();
+            showMessage(tr("Project saved!"));
+        } else {
+            showMessage(tr("Can`t save file!"));
+        }
+    }
+    else {
+        showMessage(tr("Collection is empty!"));
+    }
+}
+
+void MainWindow::onLoadProjectClicked()
+{
+    QString selectedFilePath = openFileDialog(tr("Load Project"), FileDialogType::LOADFILE);
+    if (selectedFilePath.isEmpty()) return;
+    QFile loadedFile(selectedFilePath);
+    if (loadedFile.open(QIODevice::ReadOnly)) {
+        QDataStream in(&loadedFile);
+        in.setVersion(QDataStream::Qt_4_0);
+        quint32 magic;
+        in >> magic;
+        if (magic != 0xCEFDEF) {
+            loadedFile.close();
+            showMessage(tr("Incorrect project file!!!"));
+            return;
+        }
+        QList<QList<NumPaths>> _generatedPathsList;
+        int     count,
+                start_from,
+                startInt,
+                endInt;
+        QString name,
+                description,
+                uri,
+                folder;
+        QMap<QString, QString> tableMap;
+        in >> tableMap;
+        in >> name;
+        in >> description;
+        in >> uri;
+        in >> count;
+        in >> start_from;
+        in >> startInt;
+        in >> endInt;
+        in >> folder;
+        in >> _generatedPathsList;
+        loadedFile.close();
+        bool correctSequenceFlag = true;
+        QList<QList<NumPaths>> totalPathsList;
+        QStringList paths;
+        renewFolder(folder, totalPathsList, paths, correctSequenceFlag);
+        if (correctSequenceFlag && _generatedPathsList.size() > 0) {
+            current_image = 0;
+            input_folder = folder;
+            ui->tableWidget_advanced->setRowCount(0);
+            QList<QString> keys = tableMap.keys();
+            for (auto &key: keys) {
+                const int rowsCount = ui->tableWidget_advanced->rowCount();
+                ui->tableWidget_advanced->setRowCount(rowsCount + 1);
+                QTableWidgetItem *key_item = new QTableWidgetItem(key);
+                QTableWidgetItem *value_item = new QTableWidgetItem(tableMap[key]);
+                ui->tableWidget_advanced->setItem(rowsCount, 0, key_item);
+                ui->tableWidget_advanced->setItem(rowsCount, 1, value_item);
+            }
+            ui->lineEdit_name->setText(name);
+            ui->textEdit_description->setText(description);
+            ui->lineEdit_uri->setText(uri);
+
+            ui->spinBox_count->blockSignals(true);
+            ui->spinBox_count->setValue(count);
+            ui->spinBox_count->setMaximum((maxPossibleCount > 50000) ? 50000:maxPossibleCount);
+            ui->spinBox_count->blockSignals(false);
+            ui->spinBox_startFrom->setValue(start_from);
+            ui->spinBox_startInt->setValue(startInt);
+            ui->spinBox_endInt->setMaximum(count);
+            ui->spinBox_endInt->setValue(endInt);
+
+            ui->lineEdit_inputFolder->setText(input_folder);
+            generatedPathsList = _generatedPathsList;
+            renewData(folder, paths);
+        }
+    }
+    else {
+        showMessage(tr("Cannot open file!!!"));
+    }
+}
+
