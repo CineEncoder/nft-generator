@@ -6,6 +6,7 @@ QT += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++11
+#CONFIG += console
 CODECFORSRC = UTF-8
 
 # GENERAL
@@ -14,6 +15,7 @@ TEMPLATE = app
 VERSION = 1.0.0
 
 # DIRS
+CONFIG -= debug_and_release debug_and_release_target
 DESTDIR = $$PWD/../builddir
 OBJECTS_DIR = $$DESTDIR/obj
 MOC_DIR = $$DESTDIR/moc

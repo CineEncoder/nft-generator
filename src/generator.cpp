@@ -18,7 +18,19 @@ QList<QList<NumPaths>> Generator::generateCollection(const int generatedCount,
         // Unexpected error
         return QList<QList<NumPaths>>();
     }
-    auto generate = [&totalPathsList]()->QList<NumPaths> {
+#if defined (Q_OS_WIN)
+    #ifdef __MINGW64__
+        std::mt19937 gen(time(nullptr));
+    #else
+        std::random_device rd;
+        std::mt19937 gen(rd());
+    #endif
+#elif defined(Q_OS_UNIX)
+    std::random_device rd;
+    std::mt19937 gen(rd());
+#endif
+
+    auto generate = [&totalPathsList, &gen]()->QList<NumPaths> {
         QList<NumPaths> sample;
         foreach (const QList<NumPaths> &numFiles, totalPathsList) {
             int summ = 0;
@@ -29,10 +41,7 @@ QList<QList<NumPaths>> Generator::generateCollection(const int generatedCount,
             QVector<double> weights;
             foreach (const NumPaths &numFile, numFiles) {
                 weights.push_back(static_cast<double>(numFile.num)/summ);
-            }
-
-            std::random_device rd;
-            std::mt19937 gen(rd());
+            }           
             std::discrete_distribution<int> dist(std::begin(weights), std::end(weights));
             int pos = dist(gen);
             sample << numFiles.at(pos);

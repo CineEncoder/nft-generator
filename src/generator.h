@@ -8,6 +8,7 @@
 #include <QDirIterator>
 #include <iostream>
 #include <random>
+#include <ctime>
 #include "constants.h"
 
 using std::sort;
