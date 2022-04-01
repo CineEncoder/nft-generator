@@ -13,7 +13,7 @@ MainWindow::MainWindow(QWidget *parent):
     lock_ar_flag(true),
     folder_added_flag(false),
     current_image(0),
-    maxPossibleCount(1),
+    maxPossibleCount(0),
     aspectRatio(1.f)
 {
     ui->setupUi(this);
@@ -70,6 +70,25 @@ void MainWindow::showEvent(QShowEvent *event)
         setConnections();
         setParameters();
     }
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    event->ignore();
+    SETTINGS(settings);
+    settings.beginGroup("Window");
+    settings.setValue("Window/geometry", this->saveGeometry());
+    settings.setValue("Window/state", this->saveState());
+    settings.setValue("Window/theme", theme);
+    settings.endGroup();
+    settings.beginGroup("Main");
+    settings.setValue("Main/lock_ar", lock_ar_flag);
+    settings.setValue("Main/input_folder", input_folder);
+    settings.setValue("Main/output_folder", output_folder);
+    settings.setValue("Main/project_folder", project_folder);
+    settings.endGroup();
+
+    event->accept();
 }
 
 void MainWindow::setConnections()
@@ -172,17 +191,11 @@ void MainWindow::setConnections()
 
 void MainWindow::setParameters()
 {
-    QFile file(":/resources/css/style_1.css");
-    if (file.open(QIODevice::ReadOnly)) {
-        const QString list = QString::fromUtf8(file.readAll());
-        this->setStyleSheet(styleCreator(list));
-        file.close();
-    }
-
     SETTINGS(settings);
     settings.beginGroup("Window");
     this->restoreGeometry(settings.value("Window/geometry").toByteArray());
     this->restoreState(settings.value("Window/state").toByteArray());
+    theme = settings.value("Main/theme", Theme::DEFAULT).toInt();
     settings.endGroup();
     settings.beginGroup("Main");
     lock_ar_flag = settings.value("Main/lock_ar", true).toBool();
@@ -195,6 +208,7 @@ void MainWindow::setParameters()
     ui->lineEdit_outputFolder->setText(output_folder);
     ui->buttonLockAR->setProperty("lock", lock_ar_flag);
     ui->buttonLockAR->style()->polish(ui->buttonLockAR);
+    setTheme(Theme::DARK);
     /*if (!input_folder.isEmpty()) {
         QTimer::singleShot(700, this, [this]() {
             regenerateCollection(input_folder);
@@ -263,24 +277,6 @@ void MainWindow::showScene(const QList<NumPaths> &numFiles)
     }
     ui->graphicsView->fitInView(scene->sceneRect(), Qt::KeepAspectRatio);
     scene->setSceneRect(scene->itemsBoundingRect());
-}
-
-void MainWindow::closeEvent(QCloseEvent *event)
-{
-    event->ignore();
-    SETTINGS(settings);
-    settings.beginGroup("Window");
-    settings.setValue("Window/geometry", this->saveGeometry());
-    settings.setValue("Window/state", this->saveState());
-    settings.endGroup();
-    settings.beginGroup("Main");
-    settings.setValue("Main/lock_ar", lock_ar_flag);
-    settings.setValue("Main/input_folder", input_folder);
-    settings.setValue("Main/output_folder", output_folder);
-    settings.setValue("Main/project_folder", project_folder);
-    settings.endGroup();
-
-    event->accept();
 }
 
 QString MainWindow::styleCreator(const QString &list)
@@ -497,6 +493,18 @@ void MainWindow::scrollImages(const int direction)
     if (generatedPathsList.size() > current_image + 1 && direction == Direction::NEXT) {
         current_image++;
         fillWidgets(current_image);
+    }
+}
+
+void MainWindow::setTheme(const int theme)
+{
+    QString themePath = QString(":/resources/css/style_%1.css")
+            .arg(QString::number(theme));
+    QFile file(themePath);
+    if (file.open(QIODevice::ReadOnly)) {
+        const QString list = QString::fromUtf8(file.readAll());
+        this->setStyleSheet(styleCreator(list));
+        file.close();
     }
 }
 

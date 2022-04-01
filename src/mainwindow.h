@@ -81,7 +81,8 @@ private:
          folder_added_flag;
 
     int  current_image,
-         maxPossibleCount;
+         maxPossibleCount,
+         theme;
 
     float aspectRatio;
 
@@ -102,6 +103,7 @@ private:
     void renewData(const QString &folder, const QStringList &paths);
     void regenerateCollection(const QString &folder);
     void scrollImages(const int direction);
+    void setTheme(const int theme);
 };
 
 #endif // MAINWINDOW_H

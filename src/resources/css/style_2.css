@@ -48,9 +48,12 @@
 QMainWindow {
     background: @mainBackground;
 }
-QMainWindow::separator {
-    width: 1px;
-    height: 1px;
+QMainWindow::separator:horizontal {
+    height: 3px;
+    background: @mainBackground;
+}
+QMainWindow::separator:vertical {
+    width: 3px;
     background: @mainBackground;
 }
 
@@ -58,7 +61,8 @@ QWidget {
     background: @frameEdgingBackground;
 }
 QWidget#centralwidget {
-    background: #175C7F;
+    border: 1px solid @frameEdgeBorder;
+    background-color: @frameEdgingBackground;
 }
 QWidget#widget_main {
     background: #175C7F;
@@ -78,6 +82,9 @@ QFrame#frameMetadata,
 QFrame#frameLog,
 QFrame#frameLeft,
 QFrame#frameRight,
+QFrame#frame_preview,
+QFrame#frame_source,
+QFrame#frame_output,
 QFrame#frame_task {
     border-left: 1px solid @frameEdgeBorder;
     border-bottom: 1px solid @frameEdgeBorder;
@@ -85,23 +92,11 @@ QFrame#frame_task {
     border-top: none;
     background-color: @frameEdgingBackground;
 }
-
-QFrame#frame_preview,
-QFrame#frame_source,
-QFrame#frame_output {
-    border-left: 1px solid @frameEdgeBorder;
-    border-bottom: 1px solid @frameEdgeBorder;
-    border-right: 1px solid @frameEdgeBorder;
-    border-top: none;
-    background-color: @frameMiddleBackground;
-}
-
 QFrame#frameTaskHeader {
     min-height: 23px;
     border-top: 1px solid @frameEdgeBorder;
     background-color: @frameHeaderBackground;
 }
-
 QFrame#frame_middle,
 QFrame#frameAltTab_1,
 QFrame#frameAltTab_2
@@ -123,13 +118,6 @@ QFrame#frameLeftTab_1, QFrame#frameLeftTab_2, QFrame#frameTab_5 {
     background-color: @tableBackground;
 }
 
-#AudioLabel {
-    color: @frameHeaderBackground; font: 24pt; font-style: oblique;
-}
-
-#SubtitleLabel {
-    color: @frameHeaderBackground; font: 24pt; font-style: oblique;
-}
 
 /**************************************************************************
 **  QToolTip
@@ -142,6 +130,46 @@ QToolTip {
     background-color: #1B1D23;
 }
 
+/**************************************************************************
+**  QToolBar
+**************************************************************************/
+
+QToolBar {
+    spacing: 3px;
+    min-width: 32px;
+    min-height: 32px;
+    border: none;
+    background: @frameMiddleBackground;
+}
+
+QToolBar::separator {
+    width: 1px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    background: #353548;
+}
+
+QToolBar::handle {
+    /*image: url(handle.png);*/
+}
+
+/**************************************************************************
+**  QStatusBar
+**************************************************************************/
+
+QStatusBar {
+    min-height: 30px;
+    margin-top: 3px;
+    margin-bottom: 3px;
+    border-top: 1px solid @frameEdgeBorder;
+    color: @elementsTextDisabled;
+    background: @frameMiddleBackground;
+}
+
+QStatusBar::item {
+    border: 1px solid red;
+    border-radius: 3px;
+}
 
 /**************************************************************************
 **  QMenu
@@ -158,6 +186,30 @@ QMenu::item:selected {
     background-color: #05282D;
 }
 
+/**************************************************************************
+**  QMenuBar
+**************************************************************************/
+
+QMenuBar {
+    min-height: 24px;
+    color: @elementsTextColor;
+    background-color: @headerBackground;
+    spacing: 3px;
+}
+
+QMenuBar::item {
+    padding: 1px 4px;
+    background: transparent;
+    border-radius: 0px;
+}
+
+QMenuBar::item:selected {
+    background: @elementsBackgroundColor;
+}
+
+QMenuBar::item:pressed {
+    background: @elementsBackgroundSelectedAbstractItem;
+}
 
 /**************************************************************************
 **  QScrollBar
@@ -261,13 +313,13 @@ QHeaderView::section:horizontal {
     border-top: 1px solid @headerBorder;
     border-bottom: 1px solid @headerBorder;
     border-right: 1px solid @headerBorder;
+    border-left: 1px solid @headerBorder;
     border-radius: 0px;
     background-color: @headerBackground;
 }
 QHeaderView::section:vertical {
     border-bottom: 1px solid @headerBorder;
-    /*border-top-left-radius: 0px;
-    border-bottom-left-radius: 0px;*/
+    border-left: 1px solid @headerBorder;
     background-color: @headerBackground;
 }
 QHeaderView::up-arrow {
@@ -302,6 +354,7 @@ QTableWidget {
 QTableWidget::item {
     margin-left: 0px;
     margin-right: 0px;
+    border-left: 1px solid @tableGrid;
 }
 QTableWidget::item:selected {
     margin: 0px;

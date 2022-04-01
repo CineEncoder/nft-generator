@@ -52,7 +52,6 @@ QMainWindow::separator:horizontal {
     height: 3px;
     background: @mainBackground;
 }
-
 QMainWindow::separator:vertical {
     width: 3px;
     background: @mainBackground;
@@ -98,7 +97,6 @@ QFrame#frameTaskHeader {
     border-top: 1px solid @frameEdgeBorder;
     background-color: @frameHeaderBackground;
 }
-
 QFrame#frame_middle,
 QFrame#frameAltTab_1,
 QFrame#frameAltTab_2
@@ -120,13 +118,6 @@ QFrame#frameLeftTab_1, QFrame#frameLeftTab_2, QFrame#frameTab_5 {
     background-color: @tableBackground;
 }
 
-#AudioLabel {
-    color: #09161E; font: 24pt; font-style: oblique;
-}
-
-#SubtitleLabel {
-    color: #09161E; font: 24pt; font-style: oblique;
-}
 
 /**************************************************************************
 **  QToolTip
@@ -148,9 +139,6 @@ QToolBar {
     min-width: 32px;
     min-height: 32px;
     border: none;
-    /*margin-top: 3px;
-    margin-bottom: 3px;
-    border-bottom: 1px solid @frameEdgeBorder;*/
     background: @frameMiddleBackground;
 }
 
@@ -332,8 +320,6 @@ QHeaderView::section:horizontal {
 QHeaderView::section:vertical {
     border-bottom: 1px solid @headerBorder;
     border-left: 1px solid @headerBorder;
-    /*border-top-left-radius: 0px;
-    border-bottom-left-radius: 0px;*/
     background-color: @headerBackground;
 }
 QHeaderView::up-arrow {
@@ -358,7 +344,6 @@ QTableWidget {
     outline: none;
     padding-bottom: 0px;
     border-radius: 0px;
-
     color: @headerTextColor;
     background-color: @tableBackground;
     selection-background-color: #1C252F;

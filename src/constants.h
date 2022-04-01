@@ -24,4 +24,8 @@ enum FileDialogType {
     LOADFILE, SAVEFILE, OPENFOLDER
 };
 
+enum Theme {
+    GRAY, DARK, WAVE, DEFAULT
+};
+
 #endif // CONSTANTS_H
