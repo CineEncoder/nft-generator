@@ -3,7 +3,7 @@
 **************************************************************************/
 
 
-@mainBackground = #05141C;
+@mainBackground = #121921;
 
 @tableBackground = #05141C;
 @tableAlternateBackground = #09161E;
@@ -45,7 +45,7 @@
 **  QWidget
 **************************************************************************/
 
-QMainWindow {
+#MainWindow {
     background: @mainBackground;
 }
 QMainWindow::separator:horizontal {
@@ -151,6 +151,11 @@ QToolBar::separator {
 
 QToolBar::handle {
     /*image: url(handle.png);*/
+}
+
+#toolBarSpacer {
+    border: none;
+    background: @frameMiddleBackground;
 }
 
 /**************************************************************************
@@ -1373,7 +1378,6 @@ QDockWidget {
     titlebar-normal-icon: url(:/resources/icons/16x16/cil-pin.png);
     color: @elementsTextDisabled;
 }
-
 QDockWidget>QWidget {
     border-left: 1px solid @frameEdgeBorder;
     border-bottom: 1px solid @frameEdgeBorder;
@@ -1381,7 +1385,6 @@ QDockWidget>QWidget {
     border-top: none;
     background-color: @frameEdgingBackground;
 }
-
 QDockWidget::title {
     padding-left: 12px;
     padding-top: 3px;
@@ -1484,4 +1487,3 @@ QTabBar::tab:bottom:selected, QDockWidget QTabBar::tab:bottom:selected {
 QTabBar::tab:bottom:!selected, QDockWidget QTabBar::tab:bottom:!selected {
     background-color: @frameMiddleBackground;
 }
-

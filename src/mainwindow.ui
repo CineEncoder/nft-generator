@@ -1038,19 +1038,6 @@
          </property>
         </spacer>
        </item>
-       <item row="4" column="7" alignment="Qt::AlignLeft">
-        <widget class="QLabel" name="label_9">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>20</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>   Interval</string>
-         </property>
-        </widget>
-       </item>
        <item row="6" column="7">
         <widget class="QSpinBox" name="spinBox_startInt">
          <property name="minimumSize">
@@ -1098,6 +1085,19 @@
          </property>
         </widget>
        </item>
+       <item row="4" column="7">
+        <widget class="QLabel" name="label_9">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>   Interval</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </item>
     </layout>
@@ -1137,9 +1137,16 @@
      <string>View</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuPreferences">
+    <property name="title">
+     <string>Preferences</string>
+    </property>
+    <addaction name="actionSettings"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuView"/>
+   <addaction name="menuPreferences"/>
   </widget>
   <widget class="QToolBar" name="toolBar">
    <property name="minimumSize">
@@ -1211,6 +1218,11 @@
   <action name="actionExportJson">
    <property name="text">
     <string>Export Json</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>

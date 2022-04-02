@@ -50,6 +50,8 @@ public:
     friend QDataStream& (operator<<)(QDataStream &out, const NumPaths &path);
     friend QDataStream& (operator>>)(QDataStream &in, NumPaths &path);
 
+    int theme;
+
 private slots:
 
     void showEvent(QShowEvent *event);
@@ -62,12 +64,14 @@ private slots:
     void onLoadProjectClicked();
     void setOutputFolder();
     void onLockARClicked();
+    void onShowSettingsClicked();
 
     QString openFileDialog(const QString &title, int dialogType);
     QString styleCreator(const QString &list);
 
 private:
 
+    QList<QAction*> toolActions;
     QList<QString> layers;
     QList<QList<NumPaths>> generatedPathsList;
 
@@ -81,8 +85,7 @@ private:
          folder_added_flag;
 
     int  current_image,
-         maxPossibleCount,
-         theme;
+         maxPossibleCount;
 
     float aspectRatio;
 

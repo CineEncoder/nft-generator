@@ -349,5 +349,12 @@
         <file>resources/icons/32x32/cil-zoom-out.png</file>
         <file>resources/icons/12x12/cil-arrow-bottom.png</file>
         <file>resources/icons/12x12/cil-arrow-top.png</file>
+        <file>resources/icons/16x16/cil-library-add_black.png</file>
+        <file>resources/icons/16x16/cil-share-boxed_black.png</file>
+        <file>resources/icons/16x16/cil-cloud-upload_black.png</file>
+        <file>resources/icons/16x16/cil-link-broken_black.png</file>
+        <file>resources/icons/16x16/cil-link_black.png</file>
+        <file>resources/icons/16x16/cil-plus_black.png</file>
+        <file>resources/icons/16x16/cil-minus_black.png</file>
     </qresource>
 </RCC>

@@ -28,4 +28,9 @@ enum Theme {
     GRAY, DARK, WAVE, DEFAULT
 };
 
+enum ToolBarAction {
+    AddFolder, Renew, Previous, Next, ExportImages, ExportJson,
+    Settings
+};
+
 #endif // CONSTANTS_H

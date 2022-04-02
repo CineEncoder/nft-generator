@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "message.h"
-#include "dialog.h"
+#include "settings.h"
 //#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent):
@@ -118,29 +118,23 @@ void MainWindow::setConnections()
     foreach (QDockWidget *dock, dockList) {
         ui->menuView->addAction(dock->toggleViewAction());
     }
-    //============================================
-
-    ui->toolBar->addAction(QIcon(":/resources/icons/16x16/cil-library-add.png"),
-                           tr("Add folder"), this, &MainWindow::onAddFolderClicked);
-    ui->toolBar->addAction(QIcon(":/resources/icons/16x16/cil-loop-circular.png"),
-                           tr("Renew"), this, [this]() {
-        regenerateCollection(input_folder);
-    });
-    ui->toolBar->addSeparator();   
-    ui->toolBar->addAction(QIcon(":/resources/icons/16x16/cil-chevron-left.png"),
-                           tr("Previous"), this, [this]() {
-        scrollImages(Direction::PREVIOUS);
-    });
-    ui->toolBar->addAction(QIcon(":/resources/icons/16x16/cil-chevron-right.png"),
-                           tr("Next"), this, [this]() {
-        scrollImages(Direction::NEXT);
-    });
+    //================ Preferences ===============
+    connect(ui->actionSettings, &QAction::triggered, this, &MainWindow::onShowSettingsClicked);
+    //================== Tool bar ================
+    toolActions << ui->toolBar->addAction(tr("Add folder"), this, &MainWindow::onAddFolderClicked);
+    toolActions << ui->toolBar->addAction(tr("Renew"), this, [this]() {regenerateCollection(input_folder);});
     ui->toolBar->addSeparator();
-    ui->toolBar->addAction(QIcon(":/resources/icons/16x16/cil-share-boxed.png"),
-                           tr("Export Images"), this, &MainWindow::onSaveCollectionClicked);
-    ui->toolBar->addAction(QIcon(":/resources/icons/16x16/cil-cloud-upload.png"),
-                           tr("Export Json"), this, &MainWindow::onSaveJsonClicked);
-
+    toolActions << ui->toolBar->addAction(tr("Previous"), this, [this]() {scrollImages(Direction::PREVIOUS);});
+    toolActions << ui->toolBar->addAction(tr("Next"), this, [this]() {scrollImages(Direction::NEXT);});
+    ui->toolBar->addSeparator();
+    toolActions << ui->toolBar->addAction(tr("Export Images"), this, &MainWindow::onSaveCollectionClicked);
+    toolActions << ui->toolBar->addAction(tr("Export Json"), this, &MainWindow::onSaveJsonClicked);
+    QWidget *spacer = new QWidget(ui->toolBar);
+    spacer->setObjectName("toolBarSpacer");
+    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    ui->toolBar->addWidget(spacer);
+    toolActions << ui->toolBar->addAction(tr("Settings"), this, &MainWindow::onShowSettingsClicked);
+    //============================================
     connect(ui->buttonInputFolder, &QPushButton::clicked, this, &MainWindow::onAddFolderClicked);
     connect(ui->buttonOutputFolder, &QPushButton::clicked, this, &MainWindow::setOutputFolder);
     connect(ui->buttonLockAR, &QPushButton::clicked, this, &MainWindow::onLockARClicked);
@@ -195,7 +189,7 @@ void MainWindow::setParameters()
     settings.beginGroup("Window");
     this->restoreGeometry(settings.value("Window/geometry").toByteArray());
     this->restoreState(settings.value("Window/state").toByteArray());
-    theme = settings.value("Main/theme", Theme::DEFAULT).toInt();
+    theme = settings.value("Window/theme", Theme::DEFAULT).toInt();
     settings.endGroup();
     settings.beginGroup("Main");
     lock_ar_flag = settings.value("Main/lock_ar", true).toBool();
@@ -208,7 +202,7 @@ void MainWindow::setParameters()
     ui->lineEdit_outputFolder->setText(output_folder);
     ui->buttonLockAR->setProperty("lock", lock_ar_flag);
     ui->buttonLockAR->style()->polish(ui->buttonLockAR);
-    setTheme(Theme::DARK);
+    setTheme(theme);
     /*if (!input_folder.isEmpty()) {
         QTimer::singleShot(700, this, [this]() {
             regenerateCollection(input_folder);
@@ -410,6 +404,15 @@ void MainWindow::showMessage(const QString &message)
     msg.exec();
 }
 
+void MainWindow::onShowSettingsClicked()
+{
+    class Settings settings(this, &theme);
+    settings.setModal(true);
+    if (settings.exec() == QDialog::Accepted) {
+        setTheme(theme);
+    }
+}
+
 void MainWindow::renewFolder(const QString &folder,
                              QList<QList<NumPaths>> &totalPathsList,
                              QStringList &paths,
@@ -498,6 +501,43 @@ void MainWindow::scrollImages(const int direction)
 
 void MainWindow::setTheme(const int theme)
 {
+    QVector<QIcon> toolBarIcons;
+    switch (theme) {
+    case Theme::GRAY:
+    case Theme::DARK:
+    case Theme::WAVE:
+        toolBarIcons = {
+            QIcon(":/resources/icons/16x16/cil-library-add.png"),
+            QIcon(":/resources/icons/16x16/cil-loop-circular.png"),
+            QIcon(":/resources/icons/16x16/cil-chevron-left.png"),
+            QIcon(":/resources/icons/16x16/cil-chevron-right.png"),
+            QIcon(":/resources/icons/16x16/cil-share-boxed.png"),
+            QIcon(":/resources/icons/16x16/cil-cloud-upload.png"),
+            QIcon(":/resources/icons/16x16/cil-settings.png")
+        };
+        break;
+    case Theme::DEFAULT:
+        toolBarIcons = {
+            QIcon(":/resources/icons/16x16/cil-library-add_black.png"),
+            QIcon(":/resources/icons/16x16/cil-loop-circular_black.png"),
+            QIcon(":/resources/icons/16x16/cil-chevron-left_black.png"),
+            QIcon(":/resources/icons/16x16/cil-chevron-right_black.png"),
+            QIcon(":/resources/icons/16x16/cil-share-boxed_black.png"),
+            QIcon(":/resources/icons/16x16/cil-cloud-upload_black.png"),
+            QIcon(":/resources/icons/16x16/cil-settings_black.png")
+        };
+        break;
+    default:
+        return;
+    }
+
+    int ind = 0;
+    Q_ASSERT(toolActions.size() == toolBarIcons.size());
+    foreach (QAction *action, toolActions) {
+        action->setIcon(toolBarIcons[ind]);
+        ind++;
+    }
+
     QString themePath = QString(":/resources/css/style_%1.css")
             .arg(QString::number(theme));
     QFile file(themePath);

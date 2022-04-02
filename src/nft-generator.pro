@@ -27,26 +27,26 @@ RCC_DIR = $$DESTDIR/rcc
 
 #FILES
 SOURCES += \
-    dialog.cpp \
     generator.cpp \
     main.cpp \
     mainwindow.cpp \
     message.cpp \
-    progressmessage.cpp
+    progressmessage.cpp \
+    settings.cpp
 
 HEADERS += \
     constants.h \
-    dialog.h \
     generator.h \
     mainwindow.h \
     message.h \
-    progressmessage.h
+    progressmessage.h \
+    settings.h
 
 FORMS += \
-    dialog.ui \
     mainwindow.ui \
     message.ui \
-    progressmessage.ui
+    progressmessage.ui \
+    settings.ui
 
 # INSTALLS
 qnx: target.path = /tmp/$${TARGET}/bin
