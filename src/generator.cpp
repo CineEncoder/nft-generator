@@ -58,7 +58,7 @@ QList<QList<NumPaths>> Generator::generateCollection(const int generatedCount,
     };
 
     QList<QList<NumPaths>> generatedPathsList;
-    auto search_element = [&generatedPathsList](QList<NumPaths> sample)->bool {
+    auto search_element = [&generatedPathsList](QList<NumPaths> &sample)->bool {
         foreach (const QList<NumPaths> &numFiles, generatedPathsList) {
             if (numFiles.size() == sample.size()) {
                 bool flag = true;
