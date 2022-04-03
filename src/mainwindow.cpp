@@ -651,7 +651,7 @@ void MainWindow::onSaveJsonClicked()
             QJsonObject obj;
             obj["name"] = ui->lineEdit_name->text() + QString(" #%1").arg(QString::number(serial + index));
             obj["description"] = ui->textEdit_description->toPlainText().replace("\n", " ");
-            obj["image"] = ui->lineEdit_uri->text() + QString("/%1.json").arg(QString::number(serial + index));
+            obj["image"] = ui->lineEdit_uri->text() + QString("/%1.png").arg(QString::number(serial + index));
             obj["dna"] = randomHex;
             obj["edition"] = serial + index;
             obj["date"] = _date;
