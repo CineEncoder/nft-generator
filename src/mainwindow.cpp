@@ -18,6 +18,12 @@ MainWindow::MainWindow(QWidget *parent):
 {
     ui->setupUi(this);
     this->setFocusPolicy(Qt::StrongFocus);
+
+    /*setCorner(Qt::TopLeftCorner, Qt::LeftDockWidgetArea);
+    setCorner(Qt::TopRightCorner, Qt::RightDockWidgetArea);
+    setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+    setCorner(Qt::BottomRightCorner, Qt::BottomDockWidgetArea);*/
+
     generator = new Generator(this);
     ptr_progress = new ProgressMessage(this);
     ptr_progress->hide();
@@ -38,9 +44,9 @@ MainWindow::MainWindow(QWidget *parent):
 
     ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableWidget->setSortingEnabled(false);
-    //ui->tableWidget->setColumnWidth(0, 20);
-    ui->tableWidget->verticalHeader()->setFixedWidth(0);
+    ui->tableWidget_advanced->setSortingEnabled(false);
     setContentsMargins(4,4,4,4);
+    ui->tableWidget->setFocus();
 }
 
 MainWindow::~MainWindow()

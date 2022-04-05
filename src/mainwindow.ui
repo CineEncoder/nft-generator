@@ -83,7 +83,7 @@
    <widget class="QWidget" name="dockWidgetContents_1">
     <layout class="QGridLayout" name="gridLayout_6">
      <property name="leftMargin">
-      <number>20</number>
+      <number>12</number>
      </property>
      <property name="topMargin">
       <number>24</number>
@@ -105,10 +105,16 @@
           </sizepolicy>
          </property>
          <property name="horizontalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOff</enum>
+          <enum>Qt::ScrollBarAsNeeded</enum>
+         </property>
+         <property name="alternatingRowColors">
+          <bool>false</bool>
          </property>
          <property name="selectionMode">
           <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
          </property>
          <property name="rowCount">
           <number>0</number>
@@ -120,7 +126,7 @@
           <bool>true</bool>
          </attribute>
          <attribute name="verticalHeaderVisible">
-          <bool>false</bool>
+          <bool>true</bool>
          </attribute>
          <column>
           <property name="text">
@@ -198,10 +204,6 @@
          </property>
          <property name="text">
           <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="rcc.qrc">
-           <normaloff>:/resources/icons/16x16/cil-plus.png</normaloff>:/resources/icons/16x16/cil-plus.png</iconset>
          </property>
         </widget>
        </item>
@@ -292,10 +294,6 @@
          <property name="text">
           <string/>
          </property>
-         <property name="icon">
-          <iconset resource="rcc.qrc">
-           <normaloff>:/resources/icons/16x16/cil-minus.png</normaloff>:/resources/icons/16x16/cil-minus.png</iconset>
-         </property>
         </widget>
        </item>
        <item row="2" column="0" colspan="3">
@@ -362,7 +360,7 @@
    <widget class="QWidget" name="dockWidgetContents_2">
     <layout class="QGridLayout" name="gridLayout_2">
      <property name="leftMargin">
-      <number>20</number>
+      <number>12</number>
      </property>
      <property name="topMargin">
       <number>24</number>
@@ -457,7 +455,10 @@
         <enum>Qt::ScrollBarAsNeeded</enum>
        </property>
        <property name="dragEnabled">
-        <bool>true</bool>
+        <bool>false</bool>
+       </property>
+       <property name="alternatingRowColors">
+        <bool>false</bool>
        </property>
        <property name="selectionMode">
         <enum>QAbstractItemView::SingleSelection</enum>
@@ -466,8 +467,11 @@
         <enum>QAbstractItemView::SelectRows</enum>
        </property>
        <property name="sortingEnabled">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
+       <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+        <bool>false</bool>
+       </attribute>
        <attribute name="horizontalHeaderStretchLastSection">
         <bool>true</bool>
        </attribute>
@@ -548,7 +552,7 @@
    <widget class="QWidget" name="dockWidgetContents_3">
     <layout class="QGridLayout" name="gridLayout">
      <property name="leftMargin">
-      <number>20</number>
+      <number>12</number>
      </property>
      <property name="topMargin">
       <number>24</number>

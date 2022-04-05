@@ -10,7 +10,7 @@
 @tableRowSelectedBackground = #1C252F;
 @tableTextColor = #B4B4B4;
 @tableTextSelected = #D2D2D2;
-@tableGrid = #1C252F;
+@tableGrid = #141B23;
 
 @frameEdgingBackground = #09161E;
 @frameMiddleBorder = #141F2E;
@@ -313,19 +313,21 @@ QHeaderView {
     color: @headerTextColor;
     background-color: transparent;
 }
-QHeaderView::section:horizontal {
-    height: 28px;
-    border-top: 1px solid @headerBorder;
-    border-bottom: 1px solid @headerBorder;
-    border-right: 1px solid @headerBorder;
-    border-left: 1px solid @headerBorder;
+QHeaderView::section {
     border-radius: 0px;
     background-color: @headerBackground;
 }
+QHeaderView::section:horizontal {
+    height: 28px;
+    border-right: 1px solid @headerBorder;
+}
 QHeaderView::section:vertical {
-    border-bottom: 1px solid @headerBorder;
-    border-left: 1px solid @headerBorder;
-    background-color: @headerBackground;
+    width: 0px;
+    border-left: 0px;
+    border-top: 0px;
+    border-right: 1px solid @headerBorder;
+    border-bottom: 0px;
+    background-color: transparent;
 }
 QHeaderView::up-arrow {
     width: 13px;
@@ -352,18 +354,24 @@ QTableWidget {
     color: @headerTextColor;
     background-color: @tableBackground;
     selection-background-color: #1C252F;
-    /*gridline-style: solid;*/
+    gridline-style: solid;
     gridline-color: @tableGrid;
     alternate-background-color: @tableAlternateBackground;
 }
+QTableWidget QTableCornerButton {}
+QTableWidget QTableCornerButton::section {
+    border-left: 0px;
+    border-top: 0px;
+    border-right: 1px solid @headerBorder;
+    border-bottom: 0px;
+}
 QTableWidget::item {
-    margin-left: 0px;
-    margin-right: 0px;
-    border-left: 1px solid @tableGrid;
+    padding-left: 5px;
+    padding-right: 5px;
+    color: @tableTextSelected;
+    background-color: @tableBackground;
 }
 QTableWidget::item:selected {
-    margin: 0px;
-    color: @tableTextSelected;
     background-color: @tableRowSelectedBackground;
 }
 
@@ -662,9 +670,10 @@ QComboBox::drop-down {
     background-repeat: no-reperat;
 }
 QComboBox QAbstractItemView {
-    margin-top: 3px;
-    margin-bottom: 3px;
-    padding: 5px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    padding-left: 5px;
+    padding-right: 5px;
     color: @elementsTextAbstractItem;
     background-color: @elementsBackgroundAbstractItem;
     selection-background-color: @elementsBackgroundSelectedAbstractItem;
